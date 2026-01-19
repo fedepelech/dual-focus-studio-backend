@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ServiceCategory {
+  FOTOGRAFIA
+  PLANOS
+  VIDEO
+}
+
+enum Zone {
+  CABA
+  GBA
+}
+
+enum PropertyType {
+  CASA
+  DEPARTAMENTO
+  OFICINA
+  LOCAL
+  TERRENO
+}
+
+enum QuestionInputType {
+  TEXT
+  NUMBER
+  SELECT
+  RADIO
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(CUSTOMER)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id          String          @id @default(uuid())
+  name        String
+  description String
+  category    ServiceCategory
+  basePrice   Float
+  questions   Question[]
+  orders      Order[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Order {
+  id           String          @id @default(uuid())
+  status       OrderStatus     @default(PENDING)
+  address      String
+  propertySize String? // e.g., "100m2"
+  zone         Zone?
+  propertyType PropertyType?
+  details      String?
+  customerId   String
+  customer     User            @relation(fields: [customerId], references: [id])
+  serviceId    String
+  service      Service         @relation(fields: [serviceId], references: [id])
+  responses    OrderResponse[]
+  notifications Notification[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   // 'NEW_ORDER', etc.
+  message   String
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id])
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+
+model Question {
+  id           String            @id @default(uuid())
+  text         String
+  inputType    QuestionInputType
+  serviceId    String?
+  service      Service?          @relation(fields: [serviceId], references: [id])
+  displayOrder Int               @default(0)
+  isRequired   Boolean           @default(true)
+  isActive     Boolean           @default(true)
+  options      QuestionOption[]
+  responses    OrderResponse[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model QuestionOption {
+  id            String          @id @default(uuid())
+  questionId    String
+  question      Question        @relation(fields: [questionId], references: [id])
+  label         String
+  description   String?
+  priceModifier Float           @default(0)
+  responses     OrderResponse[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model OrderResponse {
+  id         String          @id @default(uuid())
+  orderId    String
+  order      Order           @relation(fields: [orderId], references: [id])
+  questionId String
+  question   Question        @relation(fields: [questionId], references: [id])
+  optionId   String? // Usado para SELECT y RADIO
+  option     QuestionOption? @relation(fields: [optionId], references: [id])
+  textValue  String? // Usado para TEXT y NUMBER
+  createdAt  DateTime        @default(now())
+}
+
+model PortfolioProject {
+  id          String            @id @default(uuid())
+  title       String
+  description String?
+  category    ServiceCategory?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  images      PortfolioImage[]
+}
+
+model PortfolioImage {
+  id           String            @id @default(uuid())
+  projectId    String
+  project      PortfolioProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  caption      String?           // Mini título o descripción de la imagen individual
+  displayOrder Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
