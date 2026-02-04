@@ -12,15 +12,19 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { extname } from 'path';
 import { PortfolioService } from './portfolio.service';
+import { StorageService } from '../storage/storage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ServiceCategory } from '@prisma/client';
 
 @Controller('portfolio')
 export class PortfolioController {
-  constructor(private readonly portfolioService: PortfolioService) {}
+  constructor(
+    private readonly portfolioService: PortfolioService,
+    private readonly storageService: StorageService,
+  ) {}
 
   // --- PROYECTOS ---
 
@@ -65,18 +69,15 @@ export class PortfolioController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
-        },
-      }),
+      storage: memoryStorage(), // Usar memoria para subir a R2
       fileFilter: (req, file, cb) => {
         if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
           return cb(new BadRequestException('Solo se permiten archivos de imagen'), false);
         }
         cb(null, true);
+      },
+      limits: {
+        fileSize: 10 * 1024 * 1024, // Límite de 10MB
       },
     }),
   )
@@ -90,11 +91,19 @@ export class PortfolioController {
       throw new BadRequestException('No se subió ningún archivo');
     }
 
+    // Generar nombre único para el archivo
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const filename = `${uniqueSuffix}${extname(file.originalname)}`;
+
+    // Subir a R2 y obtener URL
+    const url = await this.storageService.uploadFile(file.buffer, filename, file.mimetype);
+
     return this.portfolioService.addImageToProject(projectId, {
-      filename: file.filename,
+      filename,
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
+      url,
       caption,
       displayOrder: displayOrder ? parseInt(displayOrder, 10) : 0,
     });

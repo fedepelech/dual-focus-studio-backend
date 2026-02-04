@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { ServiceCategory } from '@prisma/client';
 
 @Injectable()
 export class PortfolioService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
+  ) {}
 
   // --- PROYECTOS ---
 
@@ -72,6 +76,7 @@ export class PortfolioService {
       originalName: string;
       mimeType: string;
       size: number;
+      url: string;
       caption?: string;
       displayOrder?: number;
     },
@@ -94,6 +99,19 @@ export class PortfolioService {
   }
 
   async removeImage(id: string) {
+    // Obtener la imagen para tener el filename
+    const image = await this.prisma.portfolioImage.findUnique({
+      where: { id },
+    });
+
+    if (!image) {
+      throw new NotFoundException('Imagen no encontrada');
+    }
+
+    // Eliminar de R2
+    await this.storageService.deleteFile(image.filename);
+
+    // Eliminar de la base de datos
     return this.prisma.portfolioImage.delete({
       where: { id },
     });
