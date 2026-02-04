@@ -8,8 +8,10 @@ RUN npm install
 
 COPY . .
 
-RUN npx prisma generate
+# Generar cliente Prisma y compilar NestJS
+RUN npx prisma generate && npm run build
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start:dev"]
+# Ejecutar migraciones y arrancar en producción
+CMD ["npm", "run", "start:prod"]
