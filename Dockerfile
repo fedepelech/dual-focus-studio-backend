@@ -8,6 +8,9 @@ RUN npm install
 
 COPY . .
 
+# ARG para invalidar cache cuando sea necesario
+ARG CACHEBUST=1
+
 # Generar cliente Prisma y compilar NestJS
 RUN npx prisma generate && npm run build
 
