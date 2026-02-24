@@ -56,9 +56,35 @@ async function main() {
   });
 
   // --- PREGUNTAS DINÁMICAS ---
+  
+  // Preguntas Globales - SECCIÓN INMUEBLE (Sección 1)
+  await prisma.question.create({
+    data: {
+      text: 'Cantidad de ambientes',
+      inputType: QuestionInputType.NUMBER,
+      displayOrder: 1,
+      displaySection: 1, // Se muestra en el paso de Inmueble
+    },
+  });
+
+  await prisma.question.create({
+    data: {
+      text: '¿Hay que relevar amenities?',
+      inputType: QuestionInputType.SELECT,
+      displayOrder: 2,
+      displaySection: 1, // Se muestra en el paso de Inmueble
+      options: {
+        create: [
+          { label: 'No', priceModifier: 0 },
+          { label: 'Hasta 2', priceModifier: 5000 },
+          { label: 'Más de 3', priceModifier: 8000 },
+        ],
+      },
+    },
+  });
 
   // Planos Digitales
-  await prisma.question.create({
+  const qMedir = await prisma.question.create({
     data: {
       text: '¿ServArq debe ir al inmueble para medir?',
       inputType: QuestionInputType.RADIO,
@@ -71,6 +97,22 @@ async function main() {
         ],
       },
     },
+    include: { options: true }
+  });
+
+  const optionNoNecesario = qMedir.options.find(o => o.label.includes('No es necesario'));
+
+  // Pregunta global de metros cuadrados (aplica a todos los servicios)
+  await prisma.question.create({
+    data: {
+      text: 'Metros cuadrados a medir',
+      inputType: QuestionInputType.NUMBER,
+      displayOrder: 3,
+      displaySection: 1, // Se muestra en el paso de Inmueble
+      pricingBaseUnits: 100,   // Hasta 100m² incluido
+      pricingStepSize: 1,      // Por cada m² extra
+      pricingStepPrice: 230,   // $230 por m² adicional
+    },
   });
 
   await prisma.question.create({
@@ -78,7 +120,7 @@ async function main() {
       text: 'Tipo de plano',
       inputType: QuestionInputType.RADIO,
       serviceId: digitalPlan.id,
-      displayOrder: 2,
+      displayOrder: 3,
       options: {
         create: [
           { label: 'Plano básico', description: 'Incluye muros, puertas, ventanas y mobiliario de baño y cocina.', priceModifier: 0 },
@@ -91,10 +133,17 @@ async function main() {
   // Fotografía
   await prisma.question.create({
     data: {
-      text: '¿Qué cantidad de ambientes hay que fotografiar?',
-      inputType: QuestionInputType.NUMBER,
+      text: 'Formato de las fotos',
+      inputType: QuestionInputType.RADIO,
       serviceId: photography.id,
       displayOrder: 1,
+      options: {
+        create: [
+          { label: 'Vertical', priceModifier: 0 },
+          { label: 'Horizontal', priceModifier: 0 },
+          { label: 'Ambas', priceModifier: 0 },
+        ],
+      },
     },
   });
 
@@ -113,6 +162,63 @@ async function main() {
       },
     },
   });
+
+  // --- FAQs INICIALES ---
+  await prisma.faq.deleteMany({});
+
+  const faqData = [
+    {
+      question: '¿Cuánto demora la entrega del material?',
+      answer: 'Las fotografías se entregan en un plazo de 24 a 48 horas hábiles. Los planos digitales pueden demorar entre 3 y 5 días hábiles dependiendo de la complejidad del relevamiento.',
+      displayOrder: 0,
+    },
+    {
+      question: '¿Qué incluye el precio base del servicio?',
+      answer: 'El precio base incluye la visita al inmueble, la sesión de fotos o relevamiento, y la post-producción o digitalización. Costos adicionales aplican para amenities, metros cuadrados extra, o formatos especiales.',
+      displayOrder: 1,
+    },
+    {
+      question: '¿Cuáles son las formas de pago?',
+      answer: 'Aceptamos transferencia bancaria, MercadoPago y efectivo. El pago se realiza 50% al confirmar el pedido y 50% al recibir el material final.',
+      displayOrder: 2,
+    },
+    {
+      question: '¿En qué formato se entregan los archivos?',
+      answer: 'Las fotografías se entregan en formato JPG de alta resolución. Los planos digitales se entregan en formato DWG (AutoCAD) y PDF. Los videos se entregan en formato MP4 en la resolución acordada.',
+      displayOrder: 3,
+    },
+    {
+      question: '¿Puedo cancelar o reprogramar mi pedido?',
+      answer: 'Sí, podés cancelar o reprogramar tu pedido con al menos 24 horas de anticipación sin costo adicional. Cancelaciones con menos de 24 horas pueden tener un cargo del 20% del valor del servicio.',
+      displayOrder: 4,
+    },
+  ];
+
+  for (const faq of faqData) {
+    await prisma.faq.create({ data: faq });
+  }
+
+  // --- ZONAS AMBA/GBA ---
+  const gbaPartidos = [
+    // GBA Norte
+    'Tigre', 'San Fernando', 'San Isidro', 'Vicente López', 'San Martín', 
+    'Tres de Febrero', 'Hurlingham', 'Ituzaingó', 'Morón', 'Malvinas Argentinas', 
+    'José C. Paz', 'San Miguel',
+    // GBA Sur
+    'Avellaneda', 'Lanús', 'Lomas de Zamora', 'Almirante Brown', 'Quilmes', 
+    'Berazategui', 'Florencio Varela', 'Esteban Echeverría', 'Ezeiza',
+    // GBA Oeste
+    'La Matanza', 'Merlo', 'Moreno', 'Marcos Paz', 'General Rodríguez'
+  ];
+
+  console.log('Seed: Creando subzonas GBA...');
+  for (const name of gbaPartidos) {
+    await prisma.gbaSubzoneConfig.upsert({
+      where: { name },
+      update: {},
+      create: { name, isEnabled: true },
+    });
+  }
 
   console.log('Seed data created successfully!');
 }

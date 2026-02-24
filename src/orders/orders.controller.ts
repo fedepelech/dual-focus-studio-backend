@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { Prisma } from '@prisma/client';
 
@@ -24,5 +24,13 @@ export class OrdersController {
   @Get('customer/:id')
   findByCustomer(@Param('id') id: string) {
     return this.ordersService.findByCustomer(id);
+  }
+
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id') id: string,
+    @Body('status') status: any
+  ) {
+    return this.ordersService.updateStatus(id, status);
   }
 }

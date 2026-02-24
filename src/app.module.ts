@@ -10,9 +10,13 @@ import { QuestionsModule } from './questions/questions.module';
 import { AuthModule } from './auth/auth.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { MailCronModule } from './mail-cron/mail-cron.module';
+import { FaqModule } from './faq/faq.module';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { ReviewsModule } from './reviews/reviews.module';
+import { ZonesModule } from './zones/zones.module';
 import * as fs from 'fs';
 
 @Module({
@@ -43,6 +47,10 @@ import * as fs from 'fs';
     AuthModule,
     PortfolioModule,
     NotificationsModule,
+    MailCronModule,
+    FaqModule,
+    ReviewsModule,
+    ZonesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

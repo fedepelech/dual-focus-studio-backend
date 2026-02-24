@@ -62,7 +62,7 @@ model Service {
   category    ServiceCategory
   basePrice   Float
   questions   Question[]
-  orders      Order[]
+  orders      OrderService[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
@@ -71,18 +71,33 @@ model Order {
   id           String          @id @default(uuid())
   status       OrderStatus     @default(PENDING)
   address      String
-  propertySize String? // e.g., "100m2"
+  propertySize String? // ej: "100m2"
   zone         Zone?
   propertyType PropertyType?
+  roomCount    Int?              // Cantidad de ambientes
+  amenities    String?           // Selección de amenities
   details      String?
+  totalPrice   Float?            // Precio estimado calculado al crear el pedido
   customerId   String
   customer     User            @relation(fields: [customerId], references: [id])
-  serviceId    String
-  service      Service         @relation(fields: [serviceId], references: [id])
+  services     OrderService[]
   responses    OrderResponse[]
   notifications Notification[]
+  review       Review?
+  gbaSubzone   String?           // Partido del AMBA/GBA
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+}
+
+model OrderService {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, serviceId])
 }
 
 model Notification {
@@ -92,6 +107,7 @@ model Notification {
   orderId   String?
   order     Order?   @relation(fields: [orderId], references: [id])
   isRead    Boolean  @default(false)
+  emailSent Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 
@@ -100,6 +116,11 @@ model Question {
   id           String            @id @default(uuid())
   text         String
   inputType    QuestionInputType
+  pricingBaseUnits  Float?        // Unidades incluidas en precio base (ej: 100 m²)
+  pricingStepSize   Float?        // Tamaño del paso (ej: 10 m²)
+  pricingStepPrice  Float?        // Precio por cada paso extra
+  dependsOnOptionId String?       // ID de opción que activa esta pregunta
+  displaySection    Int           @default(2) // 1 = Inmueble, 2 = Detalles
   serviceId    String?
   service      Service?          @relation(fields: [serviceId], references: [id])
   displayOrder Int               @default(0)
@@ -159,4 +180,34 @@ model PortfolioImage {
   displayOrder Int               @default(0)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+}
+
+model Faq {
+  id           String   @id @default(uuid())
+  question     String
+  answer       String
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  orderId     String   @unique
+  order       Order    @relation(fields: [orderId], references: [id])
+  token       String   @unique  // Token para el enlace de valoración
+  rating      Int      // 1-5
+  comment     String?
+  authorName  String
+  isApproved  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model GbaSubzoneConfig {
+  id          String   @id @default(uuid())
+  name        String   @unique  // Nombre del partido
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
