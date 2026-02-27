@@ -11,12 +11,16 @@ import { join } from 'path';
       useFactory: async (config: ConfigService) => ({
         transport: {
           host: config.get('MAIL_HOST'),
-          port: config.get('MAIL_PORT'),
-          secure: config.get('MAIL_PORT') === 465, 
+          port: Number(config.get('MAIL_PORT')),
+          secure: Number(config.get('MAIL_PORT')) === 465,
           auth: {
             user: config.get('MAIL_USER'),
             pass: config.get('MAIL_PASSWORD'),
           },
+          tls: {
+            // No fallar si el certificado es auto-firmado o hay problemas de SNI
+            rejectUnauthorized: false
+          }
         },
         defaults: {
           from: config.get('MAIL_FROM'),
