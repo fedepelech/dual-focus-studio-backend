@@ -26,13 +26,14 @@ import { join } from 'path';
             host,
             port,
             secure: port === 465,
+            requireTLS: port === 587,
             auth: { user, pass },
             tls: {
               rejectUnauthorized: false,
             },
-            connectionTimeout: 10000, // 10s
-            greetingTimeout: 10000,   // 10s
-            socketTimeout: 15000,     // 15s
+            connectionTimeout: 15000, // 15s
+            greetingTimeout: 15000,   // 15s
+            socketTimeout: 20000,     // 20s
           },
           defaults: {
             from,
