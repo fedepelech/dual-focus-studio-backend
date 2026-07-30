@@ -31,9 +31,9 @@ import { join } from 'path';
             tls: {
               rejectUnauthorized: false,
             },
-            connectionTimeout: 15000, // 15s
-            greetingTimeout: 15000,   // 15s
-            socketTimeout: 20000,     // 20s
+            connectionTimeout: 10000, // 10s
+            greetingTimeout: 10000,   // 10s
+            socketTimeout: 15000,     // 15s
           },
           defaults: {
             from,
