@@ -20,7 +20,10 @@ import { join } from 'path';
           tls: {
             // No fallar si el certificado es auto-firmado o hay problemas de SNI
             rejectUnauthorized: false
-          }
+          },
+          connectionTimeout: 10000, // 10s
+          greetingTimeout: 10000,   // 10s
+          socketTimeout: 15000,     // 15s
         },
         defaults: {
           from: config.get('MAIL_FROM'),
