@@ -9,6 +9,9 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // Clear existing data
+  await prisma.review.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.orderService.deleteMany({});
   await prisma.orderResponse.deleteMany({});
   await prisma.order.deleteMany({});
   await prisma.questionOption.deleteMany({});
@@ -64,6 +67,9 @@ async function main() {
       inputType: QuestionInputType.NUMBER,
       displayOrder: 1,
       displaySection: 1, // Se muestra en el paso de Inmueble
+      pricingBaseUnits: 3, // Hasta 3 ambientes incluidos en el precio base
+      pricingStepSize: 1,  // Por cada ambiente extra
+      pricingStepPrice: 2500, // $2500 por ambiente adicional
     },
   });
 

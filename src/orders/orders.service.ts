@@ -3,10 +3,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MailService } from '../mail/mail.service';
 import { ReviewsService } from '../reviews/reviews.service';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, ServiceCategory } from '@prisma/client';
 
-// Constantes para valores por defecto del cálculo de precio
+// Constantes fijas para los nombres de las preguntas con precios escalonados
 const DEFAULT_PRICE = 0;
+const PREGUNTA_CANTIDAD_AMBIENTES = 'Cantidad de ambientes';
+const PREGUNTA_METROS_CUADRADOS = 'Metros cuadrados a medir';
 
 @Injectable()
 export class OrdersService {
@@ -19,7 +21,7 @@ export class OrdersService {
 
   /**
    * Calcula el precio total estimado de un pedido.
-   * Suma: precios base de servicios + modificadores de opciones + pricing escalonado.
+   * Suma: precios base de servicios + modificadores de opciones + pricing escalonado condicionado por categoría.
   */
   async calculateTotalPrice(
     serviceIds: string[],
@@ -27,13 +29,21 @@ export class OrdersService {
   ): Promise<number> {
     let total = DEFAULT_PRICE;
 
-    // 1. Sumar precios base de los servicios seleccionados
+    let hasPlanos = false;
+    let hasFotoOrVideo = false;
+
+    // 1. Sumar precios base de los servicios seleccionados y detectar categorías de servicios fijos
     if (serviceIds.length > 0) {
       const services = await this.prisma.service.findMany({
         where: { id: { in: serviceIds } },
-        select: { basePrice: true },
+        select: { id: true, category: true, basePrice: true },
       });
       total += services.reduce((sum, s) => sum + (s.basePrice || 0), 0);
+
+      hasPlanos = services.some(s => s.category === ServiceCategory.PLANOS);
+      hasFotoOrVideo = services.some(
+        s => s.category === ServiceCategory.FOTOGRAFIA || s.category === ServiceCategory.VIDEO
+      );
     }
 
     // 2. Procesar respuestas: modificadores de opciones + pricing escalonado
@@ -63,14 +73,21 @@ export class OrdersService {
         },
         select: {
           id: true,
+          text: true,
           pricingBaseUnits: true,
           pricingStepSize: true,
           pricingStepPrice: true,
         },
       });
 
-      // Calcular precio adicional por cada pregunta con pricing escalonado
+      // Calcular precio adicional por cada pregunta con pricing escalonado condicionado al servicio
       for (const question of questionsWithPricing) {
+        // Si es cobro por ambientes, solo aplica si se seleccionó servicio de Planos
+        if (question.text === PREGUNTA_CANTIDAD_AMBIENTES && !hasPlanos) continue;
+
+        // Si es cobro por metros cuadrados, solo aplica si se seleccionó servicio de Fotografía o Video
+        if (question.text === PREGUNTA_METROS_CUADRADOS && !hasFotoOrVideo) continue;
+
         const response = responses.find(r => r.questionId === question.id);
         if (response?.textValue) {
           const valor = parseFloat(response.textValue);

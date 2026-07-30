@@ -165,6 +165,7 @@ model PortfolioProject {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   images      PortfolioImage[]
+  videos      PortfolioVideo[]
 }
 
 model PortfolioImage {
@@ -177,6 +178,21 @@ model PortfolioImage {
   size         Int
   url          String            // URL pública de R2
   caption      String?           // Mini título o descripción de la imagen individual
+  displayOrder Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model PortfolioVideo {
+  id           String            @id @default(uuid())
+  projectId    String
+  project      PortfolioProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String            // URL pública de R2
+  title        String?           // Título o descripción del video
   displayOrder Int               @default(0)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt

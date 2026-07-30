@@ -6,8 +6,8 @@ import { ServiceCategory } from '@prisma/client';
 @Injectable()
 export class PortfolioService {
   constructor(
-    private prisma: PrismaService,
-    private storageService: StorageService,
+    private readonly prisma: PrismaService,
+    private readonly storageService: StorageService,
   ) {}
 
   // --- PROYECTOS ---
@@ -19,7 +19,10 @@ export class PortfolioService {
   }) {
     return this.prisma.portfolioProject.create({
       data,
-      include: { images: true },
+      include: {
+        images: { orderBy: { displayOrder: 'asc' } },
+        videos: { orderBy: { displayOrder: 'asc' } },
+      },
     });
   }
 
@@ -28,6 +31,9 @@ export class PortfolioService {
       where: { isActive: true },
       include: {
         images: {
+          orderBy: { displayOrder: 'asc' },
+        },
+        videos: {
           orderBy: { displayOrder: 'asc' },
         },
       },
@@ -42,6 +48,9 @@ export class PortfolioService {
         images: {
           orderBy: { displayOrder: 'asc' },
         },
+        videos: {
+          orderBy: { displayOrder: 'asc' },
+        },
       },
     });
     if (!project) throw new NotFoundException('Proyecto no encontrado');
@@ -50,24 +59,27 @@ export class PortfolioService {
 
   async updateProject(id: string, data: any) {
     await this.findOneProject(id);
-    const { images, createdAt, updatedAt, ...sanitizedData } = data;
+    const { images, videos, createdAt, updatedAt, ...sanitizedData } = data;
     return this.prisma.portfolioProject.update({
       where: { id },
       data: sanitizedData,
-      include: { images: true },
+      include: {
+        images: { orderBy: { displayOrder: 'asc' } },
+        videos: { orderBy: { displayOrder: 'asc' } },
+      },
     });
   }
 
   async removeProject(id: string) {
     await this.findOneProject(id);
-    // Soft delete
+    // Soft delete del proyecto
     return this.prisma.portfolioProject.update({
       where: { id },
       data: { isActive: false },
     });
   }
 
-  // --- IMÁGENES ---
+  // --- IMÁGENES (CLOUDFLARE R2) ---
 
   async addImageToProject(
     projectId: string,
@@ -81,7 +93,6 @@ export class PortfolioService {
       displayOrder?: number;
     },
   ) {
-    // Verificar que el proyecto existe
     await this.findOneProject(projectId);
     return this.prisma.portfolioImage.create({
       data: {
@@ -99,7 +110,6 @@ export class PortfolioService {
   }
 
   async removeImage(id: string) {
-    // Obtener la imagen para tener el filename
     const image = await this.prisma.portfolioImage.findUnique({
       where: { id },
     });
@@ -113,6 +123,55 @@ export class PortfolioService {
 
     // Eliminar de la base de datos
     return this.prisma.portfolioImage.delete({
+      where: { id },
+    });
+  }
+
+  // --- VIDEOS (CLOUDFLARE R2) ---
+
+  async addVideoToProject(
+    projectId: string,
+    data: {
+      filename: string;
+      originalName: string;
+      mimeType: string;
+      size: number;
+      url: string;
+      title?: string;
+      displayOrder?: number;
+    },
+  ) {
+    await this.findOneProject(projectId);
+
+    return this.prisma.portfolioVideo.create({
+      data: {
+        ...data,
+        projectId,
+      },
+    });
+  }
+
+  async updateVideo(id: string, data: { title?: string; displayOrder?: number }) {
+    return this.prisma.portfolioVideo.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async removeVideo(id: string) {
+    const video = await this.prisma.portfolioVideo.findUnique({
+      where: { id },
+    });
+
+    if (!video) {
+      throw new NotFoundException('Video no encontrado');
+    }
+
+    // Eliminar archivo de Cloudflare R2
+    await this.storageService.deleteFile(video.filename);
+
+    // Eliminar registro de la base de datos
+    return this.prisma.portfolioVideo.delete({
       where: { id },
     });
   }
