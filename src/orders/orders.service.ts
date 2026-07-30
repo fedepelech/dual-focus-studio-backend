@@ -225,14 +225,15 @@ export class OrdersService {
 
   /**
    * Actualiza el estado de un pedido.
-   * Si pasa a COMPLETED, genera token de valoración y envía email.
+   * Si pasa a COMPLETED, genera token de valoración y envía email en segundo plano.
    */
   async updateStatus(id: string, status: OrderStatus) {
-    // Solo permitir COMPLETED o CANCELLED según requerimiento del admin
-    if (status !== OrderStatus.COMPLETED && status !== OrderStatus.CANCELLED) {
-      throw new BadRequestException('Solo se puede cambiar el estado a FINALIZADO o CANCELADO');
+    // Validar que el estado enviado pertenezca al enum OrderStatus
+    if (!Object.values(OrderStatus).includes(status)) {
+      throw new BadRequestException(`Estado '${status}' no es válido`);
     }
 
+    // 1. Actualizar el estado en la base de datos
     const order = await this.prisma.order.update({
       where: { id },
       data: { status },
@@ -246,20 +247,26 @@ export class OrdersService {
       }
     });
 
+    // 2. Si se marcó como completado, intentar generar review y enviar mail de valoración
     if (status === OrderStatus.COMPLETED) {
-      try {
-        // 1. Crear token de valoración
-        const review = await this.reviewsService.createToken(order.id, order.customer.name || 'Cliente');
-        
-        // 2. Enviar email al cliente
-        await this.mailService.sendReviewRequest(order, review.token);
-        
-        console.log(`Email de valoración enviado para el pedido ${order.id}`);
-      } catch (error) {
-        console.error('Error al procesar valoración tras completar pedido:', error);
-      }
+      // Ejecutar en try/catch independiente para que nunca falle la respuesta HTTP 200
+      this.processCompletedOrderReview(order).catch(err => {
+        console.error('Error procesando review tras completar pedido:', err);
+      });
     }
 
     return order;
+  }
+
+  private async processCompletedOrderReview(order: any) {
+    try {
+      const review = await this.reviewsService.createToken(order.id, order.customer?.name || 'Cliente');
+      if (review && review.token) {
+        await this.mailService.sendReviewRequest(order, review.token);
+        console.log(`Email de valoración enviado correctamente para el pedido ${order.id}`);
+      }
+    } catch (error) {
+      console.error('Error al procesar el email de valoración:', error);
+    }
   }
 }
