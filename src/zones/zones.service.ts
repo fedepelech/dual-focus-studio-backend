@@ -5,8 +5,9 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ZonesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAllSubzones() {
+  async findAllSubzones(onlyEnabled = false) {
     return this.prisma.gbaSubzoneConfig.findMany({
+      where: onlyEnabled ? { isEnabled: true } : undefined,
       orderBy: { name: 'asc' }
     });
   }

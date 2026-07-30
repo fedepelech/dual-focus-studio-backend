@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ZonesService } from './zones.service';
 
 @Controller('zones')
@@ -6,8 +6,9 @@ export class ZonesController {
   constructor(private readonly zonesService: ZonesService) {}
 
   @Get('gba-subzones')
-  findAllSubzones() {
-    return this.zonesService.findAllSubzones();
+  findAllSubzones(@Query('onlyEnabled') onlyEnabled?: string) {
+    const isOnlyEnabled = onlyEnabled === 'true';
+    return this.zonesService.findAllSubzones(isOnlyEnabled);
   }
 
   @Post('gba-subzones')
