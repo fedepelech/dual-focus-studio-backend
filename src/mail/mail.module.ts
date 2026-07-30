@@ -8,34 +8,44 @@ import { join } from 'path';
 @Module({
   imports: [
     MailerModule.forRootAsync({
-      useFactory: async (config: ConfigService) => ({
-        transport: {
-          host: config.get('MAIL_HOST'),
-          port: Number(config.get('MAIL_PORT')),
-          secure: Number(config.get('MAIL_PORT')) === 465,
-          auth: {
-            user: config.get('MAIL_USER'),
-            pass: config.get('MAIL_PASSWORD'),
+      useFactory: async (config: ConfigService) => {
+        const cleanEnv = (key: string) => {
+          const val = config.get<string>(key);
+          return val ? val.replace(/^["']|["']$/g, '').trim() : '';
+        };
+
+        const rawPort = cleanEnv('MAIL_PORT');
+        const port = parseInt(rawPort, 10) || 465;
+        const host = cleanEnv('MAIL_HOST') || 'smtp.zoho.com';
+        const user = cleanEnv('MAIL_USER');
+        const pass = cleanEnv('MAIL_PASSWORD');
+        const from = cleanEnv('MAIL_FROM');
+
+        return {
+          transport: {
+            host,
+            port,
+            secure: port === 465,
+            auth: { user, pass },
+            tls: {
+              rejectUnauthorized: false,
+            },
+            connectionTimeout: 10000, // 10s
+            greetingTimeout: 10000,   // 10s
+            socketTimeout: 15000,     // 15s
           },
-          tls: {
-            // No fallar si el certificado es auto-firmado o hay problemas de SNI
-            rejectUnauthorized: false
+          defaults: {
+            from,
           },
-          connectionTimeout: 10000, // 10s
-          greetingTimeout: 10000,   // 10s
-          socketTimeout: 15000,     // 15s
-        },
-        defaults: {
-          from: config.get('MAIL_FROM'),
-        },
-        template: {
-          dir: join(__dirname, 'templates'),
-          adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
+          template: {
+            dir: join(__dirname, 'templates'),
+            adapter: new HandlebarsAdapter(),
+            options: {
+              strict: true,
+            },
           },
-        },
-      }),
+        };
+      },
       inject: [ConfigService],
     }),
   ],
