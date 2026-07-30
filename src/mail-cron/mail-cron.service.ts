@@ -12,8 +12,8 @@ export class MailCronService {
     private mailService: MailService,
   ) {}
 
-  // Se ejecuta cada 30 segundos
-  @Cron('*/30 * * * * *')
+  // Se ejecuta cada 2 minutos
+  @Cron('0 */2 * * * *')
   async handlePendingEmailNotifications() {
     this.logger.debug('Buscando notificaciones de mail pendientes...');
 
@@ -46,7 +46,6 @@ export class MailCronService {
     for (const notification of pendingNotifications) {
       if (!notification.order) {
         this.logger.warn(`La notificación ${notification.id} no tiene un pedido asociado.`);
-        // Marcamos como enviada para no procesarla de nuevo o podríamos borrarla
         await this.prisma.notification.update({
           where: { id: notification.id },
           data: { emailSent: true },
@@ -57,16 +56,14 @@ export class MailCronService {
       try {
         await this.mailService.sendNewOrderNotification(notification.order);
         
-        // Marcamos la notificación como enviada por email
         await this.prisma.notification.update({
           where: { id: notification.id },
           data: { emailSent: true },
         });
         
         this.logger.log(`Email enviado con éxito para el pedido ${notification.order.id}`);
-      } catch (error) {
-        this.logger.error(`Error al procesar el envío de mail para la notificación ${notification.id}:`, error);
-        // No marcamos como enviado para reintentar en el próximo ciclo
+      } catch (error: any) {
+        this.logger.error(`Error al procesar envío de mail para notificación ${notification.id}: ${error?.message || error}`);
       }
     }
   }
