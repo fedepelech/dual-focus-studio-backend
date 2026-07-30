@@ -11,16 +11,20 @@ export class ZonesController {
   }
 
   @Post('gba-subzones')
-  createSubzone(@Body('name') name: string) {
-    return this.zonesService.createSubzone(name);
+  createSubzone(
+    @Body('name') name: string,
+    @Body('extraPrice') extraPrice?: number,
+  ) {
+    return this.zonesService.createSubzone(name, extraPrice);
   }
 
   @Patch('gba-subzones/:id')
   updateSubzone(
     @Param('id') id: string,
-    @Body('isEnabled') isEnabled: boolean
+    @Body('isEnabled') isEnabled?: boolean,
+    @Body('extraPrice') extraPrice?: number,
   ) {
-    return this.zonesService.updateSubzone(id, isEnabled);
+    return this.zonesService.updateSubzone(id, { isEnabled, extraPrice });
   }
 
   @Delete('gba-subzones/:id')

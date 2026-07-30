@@ -26,6 +26,7 @@ export class OrdersService {
   async calculateTotalPrice(
     serviceIds: string[],
     responses: { questionId: string; optionId?: string; textValue?: string }[],
+    gbaSubzone?: string,
   ): Promise<number> {
     let total = DEFAULT_PRICE;
 
@@ -100,6 +101,17 @@ export class OrdersService {
       }
     }
 
+    // 3. Recargo por subzona de GBA
+    if (gbaSubzone) {
+      const subzoneConfig = await this.prisma.gbaSubzoneConfig.findUnique({
+        where: { name: gbaSubzone },
+        select: { extraPrice: true },
+      });
+      if (subzoneConfig?.extraPrice) {
+        total += subzoneConfig.extraPrice;
+      }
+    }
+
     return total;
   }
 
@@ -110,6 +122,7 @@ export class OrdersService {
     const calculatedPrice = await this.calculateTotalPrice(
       serviceIds || [],
       responses || [],
+      data.gbaSubzone,
     );
 
     const order = await this.prisma.order.create({

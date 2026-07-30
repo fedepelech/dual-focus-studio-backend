@@ -11,16 +11,16 @@ export class ZonesService {
     });
   }
 
-  async createSubzone(name: string) {
+  async createSubzone(name: string, extraPrice?: number) {
     return this.prisma.gbaSubzoneConfig.create({
-      data: { name, isEnabled: true }
+      data: { name, isEnabled: true, extraPrice: extraPrice ?? 0 }
     });
   }
 
-  async updateSubzone(id: string, isEnabled: boolean) {
+  async updateSubzone(id: string, data: { isEnabled?: boolean; extraPrice?: number }) {
     return this.prisma.gbaSubzoneConfig.update({
       where: { id },
-      data: { isEnabled }
+      data,
     });
   }
 

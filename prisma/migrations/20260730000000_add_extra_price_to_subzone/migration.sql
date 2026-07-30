@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "GbaSubzoneConfig" ADD COLUMN "extraPrice" DOUBLE PRECISION NOT NULL DEFAULT 0;

@@ -224,6 +224,7 @@ model GbaSubzoneConfig {
   id          String   @id @default(uuid())
   name        String   @unique  // Nombre del partido
   isEnabled   Boolean  @default(true)
+  extraPrice  Float    @default(0) // Recargo / precio adicional por zona
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
