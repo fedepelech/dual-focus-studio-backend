@@ -2,13 +2,17 @@ import { PrismaClient, Role, ServiceCategory, QuestionInputType } from '@prisma/
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as bcrypt from 'bcrypt';
+import { BARRIOS_INICIALES, PRECIO_BARRIO_POR_DEFECTO } from '../src/barrios/constants/barrios.constants';
+
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  // Clear existing data
+  // Limpiar datos existentes
   await prisma.review.deleteMany({});
   await prisma.notification.deleteMany({});
   await prisma.orderService.deleteMany({});
@@ -18,6 +22,7 @@ async function main() {
   await prisma.question.deleteMany({});
   await prisma.service.deleteMany({});
   await prisma.user.deleteMany({});
+  await prisma.barrioConfig.deleteMany({});
 
   // Create Admin User
   const hashedPassword = await bcrypt.hash('admin123secure', 10);
@@ -204,25 +209,17 @@ async function main() {
     await prisma.faq.create({ data: faq });
   }
 
-  // --- ZONAS AMBA/GBA ---
-  const gbaPartidos = [
-    // GBA Norte
-    'Tigre', 'San Fernando', 'San Isidro', 'Vicente López', 'San Martín', 
-    'Tres de Febrero', 'Hurlingham', 'Ituzaingó', 'Morón', 'Malvinas Argentinas', 
-    'José C. Paz', 'San Miguel',
-    // GBA Sur
-    'Avellaneda', 'Lanús', 'Lomas de Zamora', 'Almirante Brown', 'Quilmes', 
-    'Berazategui', 'Florencio Varela', 'Esteban Echeverría', 'Ezeiza',
-    // GBA Oeste
-    'La Matanza', 'Merlo', 'Moreno', 'Marcos Paz', 'General Rodríguez'
-  ];
-
-  console.log('Seed: Creando subzonas GBA...');
-  for (const name of gbaPartidos) {
-    await prisma.gbaSubzoneConfig.upsert({
+  // --- BARRIOS CABA Y SAN ISIDRO ---
+  console.log('Seed: Creando barrios de CABA y San Isidro...');
+  for (const name of BARRIOS_INICIALES) {
+    await prisma.barrioConfig.upsert({
       where: { name },
       update: {},
-      create: { name, isEnabled: true },
+      create: {
+        name,
+        isEnabled: true,
+        price: PRECIO_BARRIO_POR_DEFECTO,
+      },
     });
   }
 

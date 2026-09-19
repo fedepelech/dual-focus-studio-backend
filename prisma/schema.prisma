@@ -24,10 +24,6 @@ enum ServiceCategory {
   VIDEO
 }
 
-enum Zone {
-  CABA
-  GBA
-}
 
 enum PropertyType {
   CASA
@@ -72,7 +68,7 @@ model Order {
   status       OrderStatus     @default(PENDING)
   address      String
   propertySize String? // ej: "100m2"
-  zone         Zone?
+  barrio       String?           // Barrio o localidad seleccionada (CABA o San Isidro)
   propertyType PropertyType?
   roomCount    Int?              // Cantidad de ambientes
   amenities    String?           // Selección de amenities
@@ -84,7 +80,6 @@ model Order {
   responses    OrderResponse[]
   notifications Notification[]
   review       Review?
-  gbaSubzone   String?           // Partido del AMBA/GBA
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 }
@@ -220,11 +215,11 @@ model Review {
   createdAt   DateTime @default(now())
 }
 
-model GbaSubzoneConfig {
+model BarrioConfig {
   id          String   @id @default(uuid())
-  name        String   @unique  // Nombre del partido
+  name        String   @unique  // Nombre del barrio o localidad
   isEnabled   Boolean  @default(true)
-  extraPrice  Float    @default(0) // Recargo / precio adicional por zona
+  price       Float    @default(0) // Precio individual del servicio en este barrio
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

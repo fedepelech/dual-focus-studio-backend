@@ -26,7 +26,7 @@ export class OrdersService {
   async calculateTotalPrice(
     serviceIds: string[],
     responses: { questionId: string; optionId?: string; textValue?: string }[],
-    gbaSubzone?: string,
+    barrio?: string,
   ): Promise<number> {
     let total = DEFAULT_PRICE;
 
@@ -101,14 +101,14 @@ export class OrdersService {
       }
     }
 
-    // 3. Recargo por subzona de GBA
-    if (gbaSubzone) {
-      const subzoneConfig = await this.prisma.gbaSubzoneConfig.findUnique({
-        where: { name: gbaSubzone },
-        select: { extraPrice: true },
+    // 3. Precio individual asignado al barrio / ubicación
+    if (barrio) {
+      const barrioConfig = await this.prisma.barrioConfig.findUnique({
+        where: { name: barrio },
+        select: { price: true, isEnabled: true },
       });
-      if (subzoneConfig?.extraPrice) {
-        total += subzoneConfig.extraPrice;
+      if (barrioConfig?.isEnabled && barrioConfig.price) {
+        total += barrioConfig.price;
       }
     }
 
@@ -122,13 +122,14 @@ export class OrdersService {
     const calculatedPrice = await this.calculateTotalPrice(
       serviceIds || [],
       responses || [],
-      data.gbaSubzone,
+      data.barrio,
     );
 
     const order = await this.prisma.order.create({
       data: {
         ...orderData,
         totalPrice: calculatedPrice,
+        barrio: data.barrio || null,
         customer: { connect: { id: customerId } },
         services: {
           create: serviceIds.map((serviceId: string) => ({
@@ -142,7 +143,6 @@ export class OrdersService {
             textValue: r.textValue || null,
           })),
         } : undefined,
-        gbaSubzone: data.gbaSubzone || null,
       },
       include: {
         responses: true,

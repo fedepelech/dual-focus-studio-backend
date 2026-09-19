@@ -16,7 +16,7 @@ import { FaqModule } from './faq/faq.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { ReviewsModule } from './reviews/reviews.module';
-import { ZonesModule } from './zones/zones.module';
+import { BarriosModule } from './barrios/barrios.module';
 import * as fs from 'fs';
 
 @Module({
@@ -50,7 +50,7 @@ import * as fs from 'fs';
     MailCronModule,
     FaqModule,
     ReviewsModule,
-    ZonesModule,
+    BarriosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
