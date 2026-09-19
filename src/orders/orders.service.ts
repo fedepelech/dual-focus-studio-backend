@@ -10,6 +10,9 @@ const DEFAULT_PRICE = 0;
 const PREGUNTA_CANTIDAD_AMBIENTES = 'Cantidad de ambientes';
 const PREGUNTA_METROS_CUADRADOS = 'Metros cuadrados a medir';
 
+// Ventana de tiempo (en milisegundos) para detectar pedidos duplicados por doble clic o peticiones concurrentes
+const VENTANA_DUPLICADOS_MS = 10000;
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -117,6 +120,31 @@ export class OrdersService {
 
   async create(data: any) {
     const { responses, customerId, serviceIds, totalPrice, ...orderData } = data;
+
+    // Prevenir pedidos duplicados si llega una petición idéntica del mismo cliente en los últimos segundos
+    if (customerId && orderData.address) {
+      const fechaLimite = new Date(Date.now() - VENTANA_DUPLICADOS_MS);
+      const pedidoExistente = await this.prisma.order.findFirst({
+        where: {
+          customerId,
+          address: orderData.address,
+          createdAt: { gte: fechaLimite },
+        },
+        include: {
+          responses: true,
+          customer: true,
+          services: {
+            include: {
+              service: true,
+            },
+          },
+        },
+      });
+
+      if (pedidoExistente) {
+        return pedidoExistente;
+      }
+    }
     
     // Calcular precio total en el backend (no confiar solo en el frontend)
     const calculatedPrice = await this.calculateTotalPrice(
